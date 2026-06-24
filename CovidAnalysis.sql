@@ -103,11 +103,6 @@ CREATE TABLE covid_vaccines (
     human_development_index NUMERIC
 );
 
---No. Deaths By Country
-SELECT *
-FROM covid_deaths
-ORDER BY country, date;
-
 --No Deaths Per Infections in UK
 SELECT
     country,

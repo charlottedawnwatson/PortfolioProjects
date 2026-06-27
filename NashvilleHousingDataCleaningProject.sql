@@ -1,0 +1,247 @@
+/*
+========================================
+Nashville Housing Data Cleaning Project
+========================================
+
+This project demonstrates SQL data cleaning and transformation techniques
+on a real-world housing dataset.
+
+Skills demonstrated include:
+- Creating and structuring relational database tables
+- Handling missing values using self-joins and COALESCE
+- Converting data types (e.g. text to date)
+- Standardizing categorical values using CASE statements
+- Splitting and normalizing address fields using string functions
+- Identifying and removing duplicate records using CTEs and ROW_NUMBER window function
+- Dropping unnecessary columns to optimize dataset structure
+
+The final dataset is cleaned, standardized, and prepared for analysis
+and visualization in BI tools or further statistical modeling.
+========================================
+*/
+
+DROP TABLE IF EXISTS Nashville;
+
+CREATE TABLE Nashville (
+    UniqueID  NUMERIC,
+    ParcelID TEXT,
+    LandUse TEXT,
+    PropertyAddress TEXT,
+    SaleDate TEXT,
+    SalePrice NUMERIC,
+    LegalReference TEXT,
+    SoldAsVacant TEXT,
+    OwnerName TEXT,
+    OwnerAddress TEXT,
+    Acreage NUMERIC,
+    TaxDistrict TEXT,
+    LandValue NUMERIC,
+	BuildingValue NUMERIC,
+    TotalValue NUMERIC,
+    YearBuilt NUMERIC,
+    Bedrooms NUMERIC,
+    FullBath NUMERIC,
+    HalfBath NUMERIC);
+
+
+--Convert string date into date
+ALTER TABLE Nashville
+ALTER COLUMN SaleDate TYPE date
+USING to_date(SaleDate, 'FMMonth, DD, YYYY');
+
+SELECT *
+FROM Nashville
+
+
+--Filling in NULL properyaddress values based off of matching parcelid
+UPDATE Nashville
+SET propertyaddress = COALESCE(a.propertyaddress, b.propertyaddress)
+FROM Nashville a
+JOIN Nashville b
+ON a.parcelid = b.parcelid
+AND a.uniqueid <> b.uniqueid
+WHERE a.propertyaddress IS NULL
+
+
+--Breaking Up Property Address (Address, City)
+
+ALTER TABLE Nashville
+ADD COLUMN propertyaddress1 text,
+ADD COLUMN propertycity text,
+ADD COLUMN propertystate text;
+
+UPDATE Nashville
+SET
+propertyaddress1 = NULLIF((SPLIT_PART(propertyaddress, ',', 1)), ''),
+propertycity = NULLIF((SPLIT_PART(propertyaddress, ',', 2)), ''),
+
+--Breaking Up Owner Address (Address, City , State)
+
+ALTER TABLE Nashville
+ADD COLUMN owneraddress1 text,
+ADD COLUMN ownercity text,
+ADD COLUMN ownerstate text;
+
+
+UPDATE Nashville
+SET 
+owneraddress1 = NULLIF(SPLIT_PART(owneraddress, ',', 1), ''),
+ownercity = NULLIF(SPLIT_PART(owneraddress, ',', 2), ''),
+ownerstate = NULLIF(SPLIT_PART(owneraddress, ',', 3), '');
+
+
+--Updating soldasvacant column from Y/N/Yes/No to Yes/No
+UPDATE Nashville
+SET soldasvacant =
+	CASE 
+		WHEN soldasvacant = 'Y' THEN 'Yes'
+		WHEN soldasvacant = 'N' THEN 'No'
+		ELSE soldasvacant
+	
+
+--Removing duplicates
+
+WITH duplicates AS(
+SELECT *,
+ROW_NUMBER() OVER (
+	PARTITION BY parcelid, 
+	propertyaddress,
+	saleprice,
+	saledate,
+	legalreference
+	ORDER BY
+		uniqueid
+) row_num
+FROM Nashville)
+DELETE FROM Nashville n
+USING duplicates d
+WHERE n.uniqueid = d.uniqueid
+AND d.row_num > 1;
+
+
+--Remove unnecessary columns
+ALTER TABLE Nashville
+DROP COLUMN propertyaddress, 
+DROP COLUMN owneraddress
+
+
+
+
+
+
+
+
+
+
+
+DROP TABLE IF EXISTS Nashville;
+
+CREATE TABLE Nashville (
+    UniqueID  NUMERIC,
+    ParcelID TEXT,
+    LandUse TEXT,
+    PropertyAddress TEXT,
+    SaleDate TEXT,
+    SalePrice NUMERIC,
+    LegalReference TEXT,
+    SoldAsVacant TEXT,
+    OwnerName TEXT,
+    OwnerAddress TEXT,
+    Acreage NUMERIC,
+    TaxDistrict TEXT,
+    LandValue NUMERIC,
+	BuildingValue NUMERIC,
+    TotalValue NUMERIC,
+    YearBuilt NUMERIC,
+    Bedrooms NUMERIC,
+    FullBath NUMERIC,
+    HalfBath NUMERIC);
+
+
+--Convert string date into date
+ALTER TABLE Nashville
+ALTER COLUMN SaleDate TYPE date
+USING to_date(SaleDate, 'FMMonth, DD, YYYY');
+
+SELECT *
+FROM Nashville
+
+
+--Filling in NULL properyaddress values based off of matching parcelid
+UPDATE Nashville
+SET propertyaddress = COALESCE(a.propertyaddress, b.propertyaddress)
+FROM Nashville a
+JOIN Nashville b
+ON a.parcelid = b.parcelid
+AND a.uniqueid <> b.uniqueid
+WHERE a.propertyaddress IS NULL
+
+
+--Breaking Up Property Address (Address, City)
+
+ALTER TABLE Nashville
+ADD COLUMN propertyaddress1 text,
+ADD COLUMN propertycity text,
+ADD COLUMN propertystate text;
+
+UPDATE Nashville
+SET
+propertyaddress1 = NULLIF((SPLIT_PART(propertyaddress, ',', 1)), ''),
+propertycity = NULLIF((SPLIT_PART(propertyaddress, ',', 2)), ''),
+
+--Breaking Up Owner Address (Address, City , State)
+
+ALTER TABLE Nashville
+ADD COLUMN owneraddress1 text,
+ADD COLUMN ownercity text,
+ADD COLUMN ownerstate text;
+
+
+UPDATE Nashville
+SET 
+owneraddress1 = NULLIF(SPLIT_PART(owneraddress, ',', 1), ''),
+ownercity = NULLIF(SPLIT_PART(owneraddress, ',', 2), ''),
+ownerstate = NULLIF(SPLIT_PART(owneraddress, ',', 3), '');
+
+
+--Updating soldasvacant column from Y/N/Yes/No to Yes/No
+UPDATE Nashville
+SET soldasvacant =
+	CASE 
+		WHEN soldasvacant = 'Y' THEN 'Yes'
+		WHEN soldasvacant = 'N' THEN 'No'
+		ELSE soldasvacant
+	
+
+--Removing duplicates
+
+WITH duplicates AS(
+SELECT *,
+ROW_NUMBER() OVER (
+	PARTITION BY parcelid, 
+	propertyaddress,
+	saleprice,
+	saledate,
+	legalreference
+	ORDER BY
+		uniqueid
+) row_num
+FROM Nashville)
+DELETE FROM Nashville n
+USING duplicates d
+WHERE n.uniqueid = d.uniqueid
+AND d.row_num > 1;
+
+
+--Remove unnecessary columns
+ALTER TABLE Nashville
+DROP COLUMN propertyaddress, 
+DROP COLUMN owneraddress
+
+
+
+
+
+
+
+
